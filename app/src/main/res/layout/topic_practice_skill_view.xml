@@ -10,7 +10,7 @@
 
     <variable
       name="viewModel"
-      type="org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeSkillSummaryViewModel" />
+      type="org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeSubtopicViewModel" />
   </data>
 
   <androidx.constraintlayout.widget.ConstraintLayout
@@ -38,7 +38,7 @@
       android:paddingStart="20dp"
       android:layout_marginStart="40dp"
       android:paddingEnd="20dp"
-      android:text="@{viewModel.skillSummary.description}"
+      android:text="@{viewModel.subtopic.title}"
       android:textColor="@color/oppiaPrimaryText"
       android:textSize="16sp"
       app:layout_constraintBottom_toBottomOf="parent"

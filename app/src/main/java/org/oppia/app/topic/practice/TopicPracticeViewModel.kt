@@ -8,7 +8,7 @@ import org.oppia.app.model.Topic
 import org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeFooterViewModel
 import org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeHeaderViewModel
 import org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeItemViewModel
-import org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeSkillSummaryViewModel
+import org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeSubtopicViewModel
 import org.oppia.domain.topic.TopicController
 import org.oppia.util.data.AsyncResult
 import org.oppia.util.logging.Logger
@@ -34,7 +34,7 @@ class TopicPracticeViewModel @Inject constructor(
   }
 
   val topicPracticeSkillLiveData: LiveData<List<TopicPracticeItemViewModel>> by lazy {
-    Transformations.map(topicLiveData, ::processTopicPracticeSkillList)
+    Transformations.map(topicLiveData, ::processTopicPracticeSubtopicList)
   }
 
   fun setTopicId(topicId: String) {
@@ -48,11 +48,11 @@ class TopicPracticeViewModel @Inject constructor(
     return topic.getOrDefault(Topic.getDefaultInstance())
   }
 
-  private fun processTopicPracticeSkillList(topic: Topic): List<TopicPracticeItemViewModel> {
+  private fun processTopicPracticeSubtopicList(topic: Topic): List<TopicPracticeItemViewModel> {
     itemViewModelList.add(TopicPracticeHeaderViewModel() as TopicPracticeItemViewModel)
 
-    itemViewModelList.addAll(topic.skillList.map { skill ->
-      TopicPracticeSkillSummaryViewModel(skill) as TopicPracticeItemViewModel
+    itemViewModelList.addAll(topic.subtopicList.map { subtopic ->
+      TopicPracticeSubtopicViewModel(subtopic) as TopicPracticeItemViewModel
     })
 
     itemViewModelList.add(TopicPracticeFooterViewModel() as TopicPracticeItemViewModel)

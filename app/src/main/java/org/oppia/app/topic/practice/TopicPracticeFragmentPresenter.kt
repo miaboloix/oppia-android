@@ -1,5 +1,6 @@
 package org.oppia.app.topic.practice
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,7 +18,7 @@ import org.oppia.app.topic.TOPIC_ID_ARGUMENT_KEY
 import org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeFooterViewModel
 import org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeHeaderViewModel
 import org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeItemViewModel
-import org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeSkillSummaryViewModel
+import org.oppia.app.topic.practice.practiceitemviewmodel.TopicPracticeSubtopicViewModel
 import org.oppia.app.viewmodel.ViewModelProvider
 import javax.inject.Inject
 
@@ -27,18 +28,19 @@ class TopicPracticeFragmentPresenter @Inject constructor(
   private val activity: AppCompatActivity,
   private val fragment: Fragment,
   private val viewModelProvider: ViewModelProvider<TopicPracticeViewModel>
-) : SkillSelector {
+) : SubtopicSelector {
   private lateinit var binding: TopicPracticeFragmentBinding
   private lateinit var linearLayoutManager: LinearLayoutManager
-  lateinit var selectedSkillIdList: ArrayList<String>
+  lateinit var selectedSubtopicIdList: ArrayList<String>
   private lateinit var topicId: String
   private lateinit var topicPracticeFooterViewBinding: TopicPracticeFooterViewBinding
   private val routeToQuestionPlayerListener = activity as RouteToQuestionPlayerListener
-
+  private  lateinit var skillIdsList : ArrayList<String>
+  private val skillIdHashMap = HashMap<String,ArrayList<String>>()
   fun handleCreateView(
     inflater: LayoutInflater,
     container: ViewGroup?,
-    skillList: ArrayList<String>
+    subtopicList: ArrayList<String>
   ): View? {
     val viewModel = getTopicPracticeViewModel()
     topicId = checkNotNull(fragment.arguments?.getString(TOPIC_ID_ARGUMENT_KEY)) {
@@ -46,7 +48,7 @@ class TopicPracticeFragmentPresenter @Inject constructor(
     }
     viewModel.setTopicId(topicId)
 
-    selectedSkillIdList = skillList
+    selectedSubtopicIdList = subtopicList
     binding = TopicPracticeFragmentBinding.inflate(inflater, container, /* attachToRoot= */ false)
 
     linearLayoutManager = LinearLayoutManager(activity.applicationContext)
@@ -68,7 +70,7 @@ class TopicPracticeFragmentPresenter @Inject constructor(
       .newBuilder<TopicPracticeItemViewModel, ViewType> { viewModel ->
         when (viewModel) {
           is TopicPracticeHeaderViewModel -> ViewType.VIEW_TYPE_HEADER
-          is TopicPracticeSkillSummaryViewModel -> ViewType.VIEW_TYPE_SKILL
+          is TopicPracticeSubtopicViewModel -> ViewType.VIEW_TYPE_SKILL
           is TopicPracticeFooterViewModel -> ViewType.VIEW_TYPE_FOOTER
           else -> throw IllegalArgumentException("Encountered unexpected view model: $viewModel")
         }
@@ -83,7 +85,7 @@ class TopicPracticeFragmentPresenter @Inject constructor(
         viewType = ViewType.VIEW_TYPE_SKILL,
         inflateDataBinding = TopicPracticeSkillViewBinding::inflate,
         setViewModel = this::bindSkillView,
-        transformViewModel = { it as TopicPracticeSkillSummaryViewModel }
+        transformViewModel = { it as TopicPracticeSubtopicViewModel }
       )
       .registerViewDataBinder(
         viewType = ViewType.VIEW_TYPE_FOOTER,
@@ -94,14 +96,14 @@ class TopicPracticeFragmentPresenter @Inject constructor(
       .build()
   }
 
-  private fun bindSkillView(binding: TopicPracticeSkillViewBinding, model: TopicPracticeSkillSummaryViewModel) {
+  private fun bindSkillView(binding: TopicPracticeSkillViewBinding, model: TopicPracticeSubtopicViewModel) {
     binding.viewModel = model
-    binding.isChecked = selectedSkillIdList.contains(model.skillSummary.skillId)
+    binding.isChecked = selectedSubtopicIdList.contains(model.subtopic.subtopicId)
     binding.skillCheckBox.setOnCheckedChangeListener { _, isChecked ->
       if (isChecked) {
-        skillSelected(model.skillSummary.skillId)
+        subtopicSelected(model.subtopic.subtopicId, model.subtopic.skillIdsList as ArrayList<String>)
       } else {
-        skillUnselected(model.skillSummary.skillId)
+        subtopicUnselected(model.subtopic.subtopicId, model.subtopic.skillIdsList as ArrayList<String>)
       }
     }
   }
@@ -109,9 +111,12 @@ class TopicPracticeFragmentPresenter @Inject constructor(
   private fun bindFooterView(binding: TopicPracticeFooterViewBinding, model: TopicPracticeFooterViewModel) {
     topicPracticeFooterViewBinding = binding
     binding.viewModel = model
-    binding.isSubmitButtonActive = selectedSkillIdList.isNotEmpty()
+    binding.isSubmitButtonActive = selectedSubtopicIdList.isNotEmpty()
     binding.topicPracticeStartButton.setOnClickListener {
-      routeToQuestionPlayerListener.routeToQuestionPlayer(selectedSkillIdList)
+
+      Log.d("skill list ","==="+skillIdHashMap.values)
+       skillIdsList = ArrayList(skillIdHashMap.values)
+      routeToQuestionPlayerListener.routeToQuestionPlayer(skillIdList)
     }
   }
 
@@ -125,22 +130,27 @@ class TopicPracticeFragmentPresenter @Inject constructor(
     VIEW_TYPE_FOOTER
   }
 
-  override fun skillSelected(skillId: String) {
-    if (!selectedSkillIdList.contains(skillId)) {
-      selectedSkillIdList.add(skillId)
+  override fun subtopicSelected(subtopicId: String, skillIdsList: ArrayList<String>) {
+    if (!selectedSubtopicIdList.contains(subtopicId)) {
+      selectedSubtopicIdList.add(subtopicId)
+      skillIdHashMap.put(subtopicId,skillIdsList)
     }
 
     if (::topicPracticeFooterViewBinding.isInitialized) {
-      topicPracticeFooterViewBinding.isSubmitButtonActive = selectedSkillIdList.isNotEmpty()
+      topicPracticeFooterViewBinding.isSubmitButtonActive = selectedSubtopicIdList.isNotEmpty()
     }
   }
 
-  override fun skillUnselected(skillId: String) {
-    if (selectedSkillIdList.contains(skillId)) {
-      selectedSkillIdList.remove(skillId)
+  override fun subtopicUnselected(
+    subtopicId: String,
+    skillIdsList: ArrayList<String>
+  ) {
+    if (selectedSubtopicIdList.contains(subtopicId)) {
+      selectedSubtopicIdList.remove(subtopicId)
+      skillIdHashMap.remove(subtopicId)
     }
     if (::topicPracticeFooterViewBinding.isInitialized) {
-      topicPracticeFooterViewBinding.isSubmitButtonActive = selectedSkillIdList.isNotEmpty()
+      topicPracticeFooterViewBinding.isSubmitButtonActive = selectedSubtopicIdList.isNotEmpty()
     }
   }
 }
